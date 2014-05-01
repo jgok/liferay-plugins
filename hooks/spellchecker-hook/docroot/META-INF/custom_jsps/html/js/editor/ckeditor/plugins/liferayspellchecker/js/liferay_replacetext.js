@@ -1,4 +1,4 @@
-AUI().add('aui-replacetext', function(A) {
+AUI().add('liferay_replacetext', function(A) {
 
 	var REPLACE_TEXT = 'replaceText';
 

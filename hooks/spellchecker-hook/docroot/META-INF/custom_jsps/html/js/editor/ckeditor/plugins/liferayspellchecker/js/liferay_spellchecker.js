@@ -1,6 +1,6 @@
 ;(function() {
 
-	AUI().use('aui-replacetext', function(A) {
+	AUI().use('liferay_replacetext', function(A) {
 
 		var AArray = A.Array,
 			Lang = A.Lang,

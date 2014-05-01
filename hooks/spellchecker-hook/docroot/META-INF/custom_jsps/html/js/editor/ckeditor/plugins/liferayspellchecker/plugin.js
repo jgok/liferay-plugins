@@ -5,7 +5,7 @@
 	var baseJscPluginPath = themeDisplay.getPathJavaScript() +
 		'/editor/ckeditor/plugins/liferayspellchecker';
 
-	var jscCssPath = baseJscPluginPath + '/css/liferay.spellchecker.css';
+	var jscCssPath = baseJscPluginPath + '/css/liferay_spellchecker.css';
 
 	CKEDITOR.document.appendStyleSheet(CKEDITOR.getUrl(jscCssPath));
 
@@ -75,8 +75,8 @@
 				var instance = this;
 
 				var dependencies = [
-					CKEDITOR.getUrl(instance.path + 'js/aui-replacetext.js'),
-					CKEDITOR.getUrl(instance.path + 'js/liferay.spellchecker.js')
+					CKEDITOR.getUrl(instance.path + 'js/liferay_replacetext.js'),
+					CKEDITOR.getUrl(instance.path + 'js/liferay_spellchecker.js')
 				];
 
 				CKEDITOR.scriptLoader.load(dependencies);

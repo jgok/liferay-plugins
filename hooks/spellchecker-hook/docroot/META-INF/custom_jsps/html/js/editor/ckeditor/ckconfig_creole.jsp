@@ -23,7 +23,7 @@
 <%@ page import="com.liferay.portal.kernel.util.StringUtil" %>
 
 <liferay-util:buffer var="html">
-	<liferay-util:include page="/html/js/editor/ckeditor/ckconfig.portal.jsp" />
+	<liferay-util:include page="/html/js/editor/ckeditor/ckconfig_creole.portal.jsp" />
 </liferay-util:buffer>
 
 <%
