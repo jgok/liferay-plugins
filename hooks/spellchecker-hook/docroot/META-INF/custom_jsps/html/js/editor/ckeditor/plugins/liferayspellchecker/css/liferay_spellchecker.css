@@ -6,12 +6,7 @@
 	font: normal 13px arial;
 	overflow: none;
 	position: absolute;
-	z-index: 9999;
-}
-
-.spellchecker-suggestbox .loading {
-	font-style: italic;
-	padding: 3px 6px;
+	z-index: 5000;
 }
 
 .spellchecker-suggestbox a {
@@ -24,8 +19,8 @@
 }
 
 .spellchecker-suggestbox a:hover {
-	color: #000;
 	background: #DDD;
+	color: #000;
 }
 
 .spellchecker-suggestbox .footer {
@@ -44,7 +39,7 @@
 
 .spellchecker-incorrectwords a {
 	display: inline-block;
-	margin-right: .5em;
+	margin-right: 0.5em;
 }
 
 .spellchecker-button-icon {

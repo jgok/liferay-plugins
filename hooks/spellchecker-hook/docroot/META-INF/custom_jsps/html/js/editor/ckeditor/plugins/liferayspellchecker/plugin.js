@@ -25,6 +25,8 @@
 
 				instance.editor.setReadOnly(true);
 				instance.editor.commands.liferayspellchecker.toggleState();
+				instance.editor.document.appendStyleSheet(CKEDITOR.getUrl(jscCssPath));
+
 				instance.editorWindow = instance.editor.document.getWindow().$;
 
 				instance.createSpellchecker();
@@ -35,10 +37,6 @@
 				var instance = this;
 
 				instance.config.destroy = function() {
-					alert(
-						Liferay.Language.get('there-are-no-incorrectly-spelled-words')
-					);
-
 					instance.destroy();
 				};
 
@@ -60,15 +58,13 @@
 			destroy: function() {
 				var instance = this;
 
-				if (!instance.spellchecker) {
-					return;
+				if (instance.spellchecker) {
+					instance.spellchecker.destroy();
+					instance.spellchecker = null;
+
+					instance.editor.setReadOnly(false);
+					instance.editor.commands.liferayspellchecker.toggleState();
 				}
-
-				instance.spellchecker.destroy();
-				instance.spellchecker = null;
-
-				instance.editor.setReadOnly(false);
-				instance.editor.commands.liferayspellchecker.toggleState();
 			},
 
 			init: function(editor) {
@@ -93,7 +89,7 @@
 				);
 
 				editor.ui.addButton(
-					'liferayspellchecker',
+					'LiferaySpellChecker',
 					{
 						command: 'liferayspellchecker',
 						icon: baseJscPluginPath + '/assets/spellchecker.png',

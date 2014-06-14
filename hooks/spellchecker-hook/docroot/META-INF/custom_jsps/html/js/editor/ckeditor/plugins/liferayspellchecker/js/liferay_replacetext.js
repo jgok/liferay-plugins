@@ -1,61 +1,81 @@
 AUI().add('liferay_replacetext', function(A) {
 
-	var REPLACE_TEXT = 'replaceText';
-
 	var AArray = A.Array;
 
-	var blockElements = 'br address article aside audio blockquote body caption center dd details dir div dl dt fieldset figure footer form h1 h2 h3 h4 h5 h6 header hgroup hr li menu nav noframes ol p pre section table td th tr ul video'.split(' ');
-
-	var previousWords = [];
+	var BLOCK_ELEMENTS = 'br address article aside audio blockquote body caption center dd details dir div dl dt fieldset figure footer form h1 h2 h3 h4 h5 h6 header hgroup hr li menu nav noframes ol p pre section table td th tr ul video'.split(' ');
 
 	var ReplaceText = A.Component.create(
 		{
-			NAME: REPLACE_TEXT,
+			NAME: 'replaceText',
 
 			EXTENDS: A.Base,
 
-			findAndReplaceDOMText: function(regex, node, replacementNode, captureGroup) {
+			_previousWords: [],
+
+			findAndReplaceDOMText: function(regex, node, replacementNodeFn, captureGroup) {
 				var instance = this;
 
-				var m;
+				var returnValue = true;
+
+				var match;
 				var matches = [];
 
 				var text = instance._getText(node);
 
-				var replaceFn = instance._genReplacer(replacementNode);
+				var replaceFn = instance._genReplacer(replacementNodeFn);
 
-				if (typeof text === 'undefined') {
-					return;
-				}
+				if (typeof text !== 'undefined') {
+					if (regex.global) {
+						while (!!(match = regex.exec(text))) {
+							var matchIndexes = instance._getMatchIndexes(match, captureGroup)
 
-				if (regex.global) {
-					while (!!(m = regex.exec(text))) {
-						matches.push(instance._getMatchIndexes(m, captureGroup));
+							if (matchIndexes !== false) {
+								matches.push(matchIndexes);
+							}
+							else {
+								returnValue = false;
+							}
+						}
+					}
+					else {
+						match = text.match(regex);
+
+						var matchIndexes = instance._getMatchIndexes(match, captureGroup)
+
+						if (matchIndexes !== false) {
+							matches.push(matchIndexes);
+						}
+						else {
+							returnValue = false;
+						}
+					}
+
+					if (matches.length) {
+						instance._stepThroughMatches(node, matches, replaceFn);
 					}
 				}
-				else {
-					m = text.match(regex);
 
-					matches.push(instance._getMatchIndexes(m, captureGroup));
-				}
-
-				if (matches.length) {
-					instance._stepThroughMatches(node, matches, replaceFn);
-				}
+				return returnValue;
 			},
 
 			revert: function() {
-				for (var i = 0, l = previousWords.length; i < l; ++i) {
+			    var instance = this;
+
+			    var previousWords = instance._previousWords;
+
+			    for (var i = 0, length = previousWords.length; i < length; i ++) {
 					previousWords[i]();
 				}
 
-				previousWords = [];
+				instance._previousWords = [];
 			},
 
 			_fixWhiteSpace: function(node) {
-				var nodeNameLower = node.nodeName.toLowerCase();
+			    var instance = this;
 
-				if (AArray.indexOf(blockElements, nodeNameLower) !== -1) {
+			    var nodeNameLower = node.nodeName.toLowerCase();
+
+				if (AArray.indexOf(BLOCK_ELEMENTS, nodeNameLower) !== -1) {
 					var nextSibling = node.nextSibling;
 
 					if (!nextSibling || !((nextSibling.nodeType === 3 || nextSibling.nodeType === 4) && /^\s+$/.test(nextSibling.nodeValue))) {
@@ -67,185 +87,221 @@ AUI().add('liferay_replacetext', function(A) {
 				}
 			},
 
-			_genReplacer: function(nodeName) {
-				previousWords = [];
+			_genReplacer: function(replacementNodeFn) {
+			    var instance = this;
+
+			    instance._previousWords = [];
 
 				var makeReplacementNode;
 
-				if (typeof nodeName !== 'function') {
-					var stencilNode = nodeName.nodeType ? nodeName : document.createElement(nodeName);
+				if (typeof replacementNodeFn !== 'function') {
+					var stencilNode = replacementNodeFn.nodeType ? replacementNodeFn : document.createElement(replacementNodeFn);
 
-					makeReplacementNode = function(fill) {
-						var clone = document.createElement('div');
+					makeReplacementNode = function(fillText) {
+						var element = document.createElement('div');
 
-						clone.innerHTML = stencilNode.outerHTML || new window.XMLSerializer().serializeToString(stencilNode);
+						element.innerHTML = stencilNode.outerHTML || new window.XMLSerializer().serializeToString(stencilNode);
 
-						var el = clone.firstChild;
+						var firstChild = element.firstChild;
 
-						if (fill) {
-							el.appendChild(
-								document.createTextNode(fill)
+						if (fillText) {
+							firstChild.appendChild(
+								document.createTextNode(fillText)
 							);
 						}
 
-						return el;
+						return firstChild;
 					};
 				}
 				else {
-					makeReplacementNode = nodeName;
+					makeReplacementNode = replacementNodeFn;
 				}
 
 				return function(range) {
-					var after,
-						before,
-						endNode = range.endNode,
-						matchIndex = range.matchIndex,
-						startNode = range.startNode;
+					var textNodeEnd;
+					var	textNodeStart;
 
-					if (startNode === endNode) {
-						var node = startNode;
-						var parent = node.parentNode;
+					var	rangeEndNode = range.endNode;
+					var	rangeMatchIndex = range.matchIndex;
+					var	rangeStartNode = range.startNode;
+
+					if (rangeStartNode === rangeEndNode) {
+						var rangeNode = rangeStartNode;
+						var parentRangeNode = rangeNode.parentNode;
 
 						if (range.startNodeIndex > 0) {
-							before = document.createTextNode(node.data.substring(0, range.startNodeIndex));
+							textNodeStart = document.createTextNode(
+								rangeNode.data.substring(0, range.startNodeIndex)
+							);
 
-							parent.insertBefore(before, node);
+							parentRangeNode.insertBefore(textNodeStart, rangeNode);
 						}
 
-						var el = makeReplacementNode(range.match[0], matchIndex, range.match[0]);
+						var replacementNode = makeReplacementNode(range.match[0], rangeMatchIndex, range.match[0]);
 
-						parent.insertBefore(el, node);
+						parentRangeNode.insertBefore(replacementNode, rangeNode);
 
-						if (range.endNodeIndex < node.length) {
-							after = document.createTextNode(node.data.substring(range.endNodeIndex));
+						if (range.endNodeIndex < rangeNode.length) {
+							textNodeEnd = document.createTextNode(
+								rangeNode.data.substring(range.endNodeIndex)
+							);
 
-							parent.insertBefore(after, node);
+							parentRangeNode.insertBefore(textNodeEnd, rangeNode);
 						}
 
-						parent.removeChild(node);
+						parentRangeNode.removeChild(rangeNode);
 
-						previousWords.push(
+						instance._previousWords.push(
 							function() {
-								var parentNode = el.parentNode;
+								var parentNode = replacementNode.parentNode;
 
-								parentNode.insertBefore(el.firstChild, el);
-								parentNode.removeChild(el);
+								parentNode.insertBefore(replacementNode.firstChild, replacementNode);
+								parentNode.removeChild(replacementNode);
 								parentNode.normalize();
 							}
 						);
 
-						return el;
+						return replacementNode;
 					}
 					else {
-						before = document.createTextNode(startNode.data.substring(0, range.startNodeIndex));
-						after = document.createTextNode(endNode.data.substring(range.endNodeIndex));
-
-						var elA = makeReplacementNode(startNode.data.substring(range.startNodeIndex), matchIndex, range.match[0]);
-
-						var innerEls = [];
-
-						for (var i = 0, l = range.innerNodes.length; i < l; ++i) {
-							var innerNode = range.innerNodes[i];
-
-							var innerEl = makeReplacementNode(
-								innerNode.data,
-								matchIndex, range.match[0]
-							);
-
-							innerNode.parentNode.replaceChild(innerEl, innerNode);
-							innerEls.push(innerEl);
-						}
-
-						var elB = makeReplacementNode(
-							endNode.data.substring(0, range.endNodeIndex),
-							matchIndex, range.match[0]
+						textNodeStart = document.createTextNode(
+							rangeStartNode.data.substring(0, range.startNodeIndex)
 						);
 
-						startNode.parentNode.insertBefore(before, startNode);
-						startNode.parentNode.insertBefore(elA, startNode);
-						startNode.parentNode.removeChild(startNode);
+						textNodeEnd = document.createTextNode(
+							rangeEndNode.data.substring(range.endNodeIndex)
+						);
 
-						endNode.parentNode.insertBefore(elB, endNode);
-						endNode.parentNode.insertBefore(after, endNode);
-						endNode.parentNode.removeChild(endNode);
+						var replacementStartNode = makeReplacementNode(
+							rangeStartNode.data.substring(range.startNodeIndex),
+							rangeMatchIndex, range.match[0]
+						);
 
-						previousWords.push(
+						var replacementInnerNodes = [];
+
+						for (var i = 0, length = range.innerNodes.length; i < length; i ++) {
+							var innerNode = range.innerNodes[i];
+
+							var replacementInnerNode = makeReplacementNode(innerNode.data, rangeMatchIndex, range.match[0]);
+
+							innerNode.parentNode.replaceChild(replacementInnerNode, innerNode);
+							replacementInnerNodes.push(replacementInnerNode);
+						}
+
+						var replacementEndNode = makeReplacementNode(
+							rangeEndNode.data.substring(0, range.endNodeIndex),
+							rangeMatchIndex, range.match[0]
+						);
+
+						rangeStartNode.parentNode.insertBefore(textNodeStart, rangeStartNode);
+						rangeStartNode.parentNode.insertBefore(replacementStartNode, rangeStartNode);
+						rangeStartNode.parentNode.removeChild(rangeStartNode);
+
+						rangeEndNode.parentNode.insertBefore(replacementEndNode, rangeEndNode);
+						rangeEndNode.parentNode.insertBefore(textNodeEnd, rangeEndNode);
+						rangeEndNode.parentNode.removeChild(rangeEndNode);
+
+						instance._previousWords.push(
 							function() {
-								innerEls.unshift(elA);
-								innerEls.push(elB);
+								replacementInnerNodes.unshift(replacementStartNode);
+								replacementInnerNodes.push(replacementEndNode);
 
-								for (var i = 0, l = innerEls.length; i < l; ++i) {
-									var el = innerEls[i];
-									var pnode = el.parentNode;
+								for (var i = 0, length = replacementInnerNodes.length; i < length; i ++) {
+									var replacementInnerNode = replacementInnerNodes[i];
+									var parentNode = replacementInnerNode.parentNode;
 
-									pnode.insertBefore(el.firstChild, el);
-									pnode.removeChild(el);
-									pnode.normalize();
+									parentNode.insertBefore(replacementInnerNode.firstChild, replacementInnerNode);
+									parentNode.removeChild(replacementInnerNode);
+									parentNode.normalize();
 								}
 							}
 						);
 
-						return elB;
+						return replacementEndNode;
 					}
 				};
 			},
 
-			_getMatchIndexes: function(m, captureGroup) {
-				captureGroup = captureGroup || 0;
+			_getMatchIndexes: function(match, captureGroup) {
+			    var instance = this;
 
-				if (!m[0]) {
-					throw 'findAndReplaceDOMText cannot handle zero-length matches';
+			    var returnValue;
+
+			    captureGroup = captureGroup || 0;
+
+				if (!match[0]) {
+			        A.log(
+			        	Language.get('findAndReplaceDomText-cannot-handle-zero-length-matches'),
+			        	'error'
+			        );
+
+			        returnValue = false;
 				}
+				else {
+					var index = match.index;
 
-				var index = m.index;
+					if (captureGroup > 0) {
+						var cg = match[captureGroup];
 
-				if (captureGroup > 0) {
-					var cg = m[captureGroup];
+						if (!cg) {
+					        A.log(
+					        	Language.get('invalid-capture-group'), 'error'
+					        );
 
-					if (!cg) {
-						throw 'Invalid capture group';
+					        returnValue = false;
+						}
+						else {
+							index += match[0].indexOf(cg);
+		
+							match[0] = cg;
+
+							returnValue = [ index, index + match[0].length, [ match[0] ] ];
+						}
 					}
-
-					index += m[0].indexOf(cg);
-
-					m[0] = cg;
 				}
 
-				return [ index, index + m[0].length, [ m[0] ] ];
+				return returnValue;
 			},
 
 			_getText: function(node) {
 				var instance = this;
 
+				var returnValue;
+
 				if (node.nodeType === 3) {
-					return node.data;
+					returnValue = node.data;
 				}
+				else {
+					var tmpNode = node;
+					var text = '';
 
-				var tmpNode = node;
-				var txt = '';
-
-				if (!!(node = node.firstChild)) {
-					do {
-						txt += instance._getText(node);
+					if (!!(node = node.firstChild)) {
+						do {
+							text += instance._getText(node);
+						}
+						while (!!(node = node.nextSibling));
 					}
-					while (!!(node = node.nextSibling));
+
+					instance._fixWhiteSpace(tmpNode);
+
+					returnValue = text;
 				}
 
-				instance._fixWhiteSpace(tmpNode);
-
-				return txt;
+				return returnValue;
 			},
 
 			_stepThroughMatches: function(node, matches, replaceFn) {
-				var atIndex = 0,
-					curNode = node,
-					endNode,
-					endNodeIndex,
-					innerNodes = [],
-					matchLocation = matches.shift(),
-					matchIndex = 0,
-					startNode,
-					startNodeIndex;
+			    var instance = this;
+
+			    var atIndex = 0;
+				var	curNode = node;
+				var	endNode;
+				var	endNodeIndex;
+				var	innerNodes = [];
+				var	matchLocation = matches.shift();
+				var	matchIndex = 0;
+				var	startNode;
+				var	startNodeIndex;
 
 				out: while (true) {
 					if (curNode.nodeType === 3) {

@@ -1,6 +1,6 @@
 <%--
 /**
- * Copyright (c) 2000-2013 Liferay, Inc. All rights reserved.
+ * Copyright (c) 2000-present Liferay, Inc. All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -16,8 +16,7 @@
 
 <%@ taglib uri="http://liferay.com/tld/util" prefix="liferay-util" %>
 
-<%@ page import="com.liferay.portal.kernel.util.GetterUtil" %>
-<%@ page import="com.liferay.portal.kernel.util.PropsUtil" %>
+<%@ page import="com.liferay.portal.kernel.util.ContentTypes" %>
 <%@ page import="com.liferay.portal.kernel.util.StringBundler" %>
 <%@ page import="com.liferay.portal.kernel.util.StringPool" %>
 <%@ page import="com.liferay.portal.kernel.util.StringUtil" %>
@@ -27,6 +26,8 @@
 </liferay-util:buffer>
 
 <%
+	response.setContentType(ContentTypes.TEXT_JAVASCRIPT);
+
 	int extraPluginsIndex = html.indexOf("config.extraPlugins");
 	int extraPluginsStartIndex = html.indexOf(StringPool.APOSTROPHE, extraPluginsIndex);
 	int extraPluginsEndIndex = html.indexOf(StringPool.SEMICOLON, extraPluginsIndex);
@@ -48,7 +49,7 @@
 		sb.append(StringPool.COMMA);
 
 		if (i == 0) {
-			sb.append(_SPELLCHECKER_EXTRA_PLUGIN_NAME_VALUE);
+			sb.append("liferayspellchecker");
 			sb.append(StringPool.COMMA);
 		}
 	}
@@ -56,13 +57,7 @@
 	sb.setIndex(sb.index() - 1);
 
 	html = StringUtil.replace(html, extraPlugins, sb.toString());
-	html = StringUtil.replace(html, "SpellChecker', 'Scayt", _SPELLCHECKER_EXTRA_PLUGIN_NAME_VALUE);
+	html = StringUtil.replace(html, "SpellChecker', 'Scayt", "LiferaySpellChecker");
 %>
 
 <%= html %>
-
-<%!
-	private static final String _SPELLCHECKER_EXTRA_PLUGIN_NAME_KEY = "liferay.spellchecker.extraplugins.name";
-
-	private static final String _SPELLCHECKER_EXTRA_PLUGIN_NAME_VALUE = GetterUtil.getString(PropsUtil.get(_SPELLCHECKER_EXTRA_PLUGIN_NAME_KEY));
-%>
